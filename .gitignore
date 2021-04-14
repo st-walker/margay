@@ -1,0 +1,8 @@
+.#*
+margay.egg-info
+.DS
+bin/data
+*.png
+*.pdf
+*.tfs
+*.tfs.gz
