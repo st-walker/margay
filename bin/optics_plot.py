@@ -4,15 +4,16 @@ from pathlib import Path
 import h5py
 import matplotlib.pyplot as plt
 
+import pand8
 import numpy as np
 import tfs
-from ocelot.adaptors.madxx import tfs_to_cell_and_optics
-from margay.plot import subplots_with_td20hor
+from ocelot.adaptors.tfs import tfs_to_cell_and_optics
+from margay.plot import subplots_with_tlt20
 
 from margay import plot
 
-def plot_madx_vs_ocelot_twiss():
-    f, ax = plt.subplots()
+# def plot_madx_vs_ocelot_twiss():
+#     f, ax = plt.subplots()
 
 def set_s_label(ax):
     ax.set_xlabel(r"$s\,/\,\mathrm{m}$")
@@ -22,7 +23,7 @@ OUTDIR = "/Users/Stuart/Repos/margay/bin/"
 LINE_STYLES = ['-','--','-.',':']
 
 def beta_plot(beam_optics, tfs_table):
-    f, (ax,) = subplots_with_td20hor(figsize=(11,7))
+    f, (ax,) = subplots_with_tlt20(figsize=(15,11))
     ls = iter(LINE_STYLES)
 
     ax.plot(beam_optics["s"],
@@ -48,19 +49,20 @@ def beta_plot(beam_optics, tfs_table):
     return f
 
 def emit_plot(beam_optics, tfs_table):
-    f, (ax,) = subplots_with_td20hor(figsize=(11,7))
+    f, (ax,) = subplots_with_tlt20(figsize=(15,11))
     ax.plot(beam_optics["s"], beam_optics["emit_xn"]*1e6,
             label=r"Ocelot $x$")
     ax.plot(beam_optics["s"], beam_optics["emit_yn"]*1e6,
             label=r"Ocelot $y$")
-    ax.set_ylabel(r"$\varepsilon_n\,/\,\mathrm{mm \cdot mrad}$")
+    ax.set_ylabel(r"$\varepsilon_n\,/\,\mathrm{mm \,\, mrad}$")
+    # ax.set_ylabel(r"$\varepsilon_n\,/\,\mathrm{mm \cdot mrad}$")
     set_s_label(ax)
     ax.legend(loc="center right")
     # plt.show()
-    return f
+    return 
 
 def disp_plot(beam_optics, tfs_table):
-    f, (ax,) = subplots_with_td20hor(figsize=(11,7))
+    f, (ax,) = subplots_with_tlt20(figsize=(15,11))
     ls = iter(LINE_STYLES)
     ax.plot(beam_optics["s"], beam_optics["Dx"],
             linestyle=next(ls),
@@ -83,7 +85,7 @@ def disp_plot(beam_optics, tfs_table):
     return f
 
 def dispp_plot(beam_optics, tfs_table):
-    f, (ax,) = subplots_with_td20hor(figsize=(11,7))
+    f, (ax,) = subplots_with_tlt20(figsize=(15,11))
     ls = iter(LINE_STYLES)
     ax.plot(beam_optics["s"], beam_optics["Dxp"],
             linestyle=next(ls),
@@ -106,7 +108,7 @@ def dispp_plot(beam_optics, tfs_table):
     return f
 
 def xy_plot(beam_optics, tfs_table):
-    f, (ax,) = subplots_with_td20hor(figsize=(11,7))
+    f, (ax,) = subplots_with_tlt20(figsize=(15,11))
     ls = iter(LINE_STYLES)
     ax.plot(beam_optics["s"], beam_optics["x"]*1e6,
             linestyle=next(ls),
@@ -122,14 +124,15 @@ def xy_plot(beam_optics, tfs_table):
             tfs_table["Y"]*1e6,
             linestyle=next(ls),
             label="MAD-X $y$")
-    ax.set_ylabel(r"$\bar{x},\,\bar{y}\,/\,\mathrm{\mu m}$")
+    ax.set_ylabel(r"$\bar{x},\,\bar{y}\,/\,\mathrm{u m}$")
+    # ax.set_ylabel(r"$\bar{x},\,\bar{y}\,/\,\mathrm{\mu m}$")
     set_s_label(ax)
     ax.legend(loc="upper right")
     # plt.show()
     return f
 
 def xyp_plot(beam_optics, tfs_table):
-    f, (ax,) = subplots_with_td20hor(figsize=(11,7))
+    f, (ax,) = subplots_with_tlt20(figsize=(15,11))
     ls = iter(LINE_STYLES)
     ax.plot(beam_optics["s"], beam_optics["xp"]*1e6,
             linestyle=next(ls),
@@ -145,11 +148,24 @@ def xyp_plot(beam_optics, tfs_table):
             tfs_table["PY"]*1e6,
             linestyle=next(ls),
             label="MAD-X $y$")
-    ax.set_ylabel(r"$\bar{x}^\prime,\,\bar{y}^\prime\,/\,\mathrm{\mu rad}$")
+    # ax.set_ylabel(r"$\bar{x}^\prime,\,\bar{y}^\prime\,/\,\mathrm{\mu rad}$")
+    ax.set_ylabel(r"$\bar{x}^\prime,\,\bar{y}^\prime\,/\,\mathrm{u rad}$")
     set_s_label(ax)
     ax.legend(loc="upper right")
     # plt.show()
     return f
+
+def load_mad8_or_tfs(filein):
+    try:
+        return tfs.read(filein)
+    except tfs.TfsFormatError:
+        pass
+    print("Instead try mad8 loader...")
+    t = pand8.read(filein)
+    t = t.rename(columns={"SUML": "S"})
+
+    return t
+
 
 def plot_madx_vs_ocelot_beam(filename):
 
@@ -158,10 +174,13 @@ def plot_madx_vs_ocelot_beam(filename):
         beam_optics = {key: np.array(value)
                        for key, value in f["optics"].items()}
 
-        tfs_path = f.attrs["machine-tfs-file"]
-        tfs_table = tfs.read(tfs_path)
-        # cell, _ = tfs_to_cell_and_optics(tfs_path)
+        twiss_path = f.attrs["machine-tfs-file"]
+        # from IPython import embed; embed()
+        tfs_table = load_mad8_or_tfs(twiss_path)
+        # cell, _ = tfs_to_cell_and_optics(twiss_path)
         # # cell = list(cell)
+
+    # plt.show()
 
     # plt.savefig(OUTDIR + 'beta-vs-ocelot.pdf', bbox_inches='tight') 
     beta_plot(beam_optics, tfs_table).savefig(

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from ocelot.cpbd import magnetic_lattice
 from ocelot.cpbd.optics import twiss
 from ocelot.gui.accelerator import plot_elems
-from .models import TD20Hor
+from .models import T20Hor, T20FromTL
 
 def subplots_with_lattice(lattice,
                           nrows=1,
@@ -47,7 +47,23 @@ def subplots_with_lattice(lattice,
 
     return fig, axes
 
-def subplots_with_td20hor(*args, **kwargs):
-    td20 = TD20Hor()
-    lattice, _ = td20.make_lattice()
+def subplots_with_t20hor(*args, **kwargs):
+    t20 = T20Hor()
+    lattice, _ = t20.make_magnetic_lattice_and_twiss0()
     return subplots_with_lattice(lattice)
+
+def subplots_with_t20(*args, **kwargs):
+    t20 = T20()
+    lattice, _ = t20.make_magnetic_lattice_and_twiss0()
+    return subplots_with_lattice(lattice)
+
+def subplots_with_tlt20(*args, **kwargs):
+    t20 = T20FromTL()
+    lattice, _ = t20.make_magnetic_lattice_and_twiss0()
+    return subplots_with_lattice(lattice)
+
+
+def subplots_with_model(model, *args, **kwargs):
+    lattice, _ = model.make_magnetic_lattice_and_twiss0()
+    return subplots_with_lattice(lattice)
+    
