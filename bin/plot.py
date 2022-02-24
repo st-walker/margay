@@ -144,18 +144,27 @@ def plot_raw_emittance_growth(files, ax, charge, label, ls):
                          np.mean([x.yscale for x in data])
                          )
 
+def get_files(inpath):
+    if not Path(inpath).is_dir():
+        return [inpath]
 
-def plot_emittance_growth_versus_s(dirname, charge):
+    files = list(filesdir.glob("*.hdf5"))
 
+def get_dirname(files):
+    dirs = set([Path(f).parent for f in files])
+    if len(dirs) != 1:
+        raise RuntimeError("ambiguous output directory")
+    return min(dirs)
 
-
+def plot_emittance_growth_versus_s(inpath, charge):
     EmittanceInS = namedtuple("EmittanceInS", ["s", "ex1", "imax"])
 
     all_data = []
 
-    filesdir = Path(dirname)
+    files = get_files(inpath)
 
-    files = list(filesdir.glob("*.hdf5"))
+    filesdir = get_dirname(files)
+
     if not files:
         raise RuntimeError("No input HDF files!")    
 
