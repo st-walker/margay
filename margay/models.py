@@ -171,7 +171,7 @@ class T20Base:
         unit_steps = np.logspace(-2, 2, num=5)
         us_scanner = UnitStepScanner(navi,
                                      unit_steps,
-                                     parray0=parray
+                                     parray0=parray,
                                      outputfilename,
                                      parameter_name="unit_step"
                                      )
