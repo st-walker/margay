@@ -156,7 +156,7 @@ def get_dirname(files):
         raise RuntimeError("ambiguous output directory")
     return min(dirs)
 
-def plot_emittance_growth_versus_s(inpath, charge):
+def plot_emittance_growth_versus_s(inpath):
     EmittanceInS = namedtuple("EmittanceInS", ["s", "ex1", "imax"])
 
     all_data = []
@@ -507,10 +507,12 @@ def plot_csr_scaling():
 #     plot_net_growth(files)
 
 
-def main(dirname):
+def main(inpath):
+
+    # from IPython import embed; embed()
     # plot_impact_of_sc()
     # plot_emittance_growth_versus_s_with_mux(dirname, charge=0.2)
-    plot_emittance_growth_versus_s(dirname, charge=0.2)
+    plot_emittance_growth_versus_s(inpath)
     # plot_net_growth(filename)
     # plot_csr_scaling()
 

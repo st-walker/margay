@@ -19,6 +19,7 @@ from ocelot.cpbd.physics_proc import PhysProc
 from ocelot.cpbd.elements import Marker
 from ocelot.common.globals import m_e_GeV
 import pand8
+from ocelot.cpbd.track import ParameterScanner, UnitStepScanner
 
 import numpy as np
 import h5py
@@ -107,6 +108,7 @@ class T20Base:
         c.m_bin = 5
         c.sigma_min = sigma_min
         c.rk_traj = True
+        c.energy = parray.E
         return c
 
     def _make_sc(self, parray, conf):
@@ -116,17 +118,24 @@ class T20Base:
 
         return s
 
-    def add_physics(self, navigator, parray, outputfilename, conf, csr_markers):
+    def add_physics(self, navigator, parray, outputfilename, conf# , csr_markers
+                    ):
         for proc in self.physics:
             if proc == "sc":
                 navigator.add_physics_proc(self._make_sc(parray, conf),
                                       navigator.lat.sequence[0],
                                       navigator.lat.sequence[-1])
             elif proc == "csr":
-                for _, marker_pairs in csr_markers.items():
-                    for start, stop in marker_pairs:
-                        csr = self._make_csr(parray, conf)
-                        navigator.add_physics_proc(csr, start, stop)
+                csr = self._make_csr(parray, conf)
+                navigator.add_physics_proc(csr,
+                                           navigator.lat.sequence[0],
+                                           navigator.lat.sequence[-1])
+                # navigator
+
+                # for _, marker_pairs in csr_markers.items():
+                #     for start, stop in marker_pairs:
+                #         csr = self._make_csr(parray, conf)
+                #         navigator.add_physics_proc(csr, start, stop)
 
 
         for m, s in self.markers:
@@ -140,16 +149,37 @@ class T20Base:
         def f(ele):
             return isinstance(ele, (RBend, SBend)) and ele.l > 0.1
 
-        csr_markers = magnetic_lattice.insert_markers_by_predicate(
+        dipole_markers = magnetic_lattice.insert_markers_by_predicate(
             mlattice.sequence,
-            f
+            f,
         )
 
         # from IPython import embed; embed()
         navi = Navigator(mlattice)
         navi.unit_step = self.unit_step
-        self.add_physics(navi, parray, outputfilename, conf, csr_markers)
+        self.add_physics(navi, parray, outputfilename, conf)
         return navi, mlattice
+
+    def unit_step_scan(self, parray, outputfilename, conf):
+        calculate_optics = False
+
+        if not self.physics:
+            raise ConfigurationError("Must have some physics processes for unit step scan!")
+
+        navi, lattice = self.make_navigator(parray, outputfilename, conf)
+
+        unit_steps = np.logspace(-2, 2, num=5)
+        us_scanner = UnitStepScanner(navi,
+                                     unit_steps,
+                                     parray0=parray
+                                     outputfilename,
+                                     parameter_name="unit_step"
+                                     )
+
+        us_scanner.scan()
+
+
+        return result
 
     def track(self, parray, outputfilename, conf):
         calculate_optics = conf.optics
@@ -165,7 +195,7 @@ class T20Base:
                                                 )
         return beam_twiss, output_distribution
 
-    def make_beam(self, bunch_length, charge, energy=16.5, nparticles=200000):
+    def make_beam(self, bunch_length, charge, energy=None, nparticles=200000):
         """duration in duration in s, charge in C."""
         sigma_tau = bunch_length
         logger.info(
@@ -173,6 +203,9 @@ class T20Base:
             f"length={round(sigma_tau*1e6, 4)}us {nparticles=}"
         )
         _, twiss0 = self.make_magnetic_lattice_and_twiss0()
+
+        if energy is None:
+            energy = twiss0.E
 
         emit_xn = 0.6e-6
         emit_yn = 0.6e-6
@@ -196,7 +229,7 @@ class T20Base:
         mean = [twiss0.x, twiss0.xp, twiss0.y, twiss0.yp, 0., 0.]
         parray =  cov_matrix_to_parray(mean,
                                        cov,
-                                       energy=twiss0.E,
+                                       energy=energy,
                                        charge=charge,
                                        nparticles=nparticles)
 
