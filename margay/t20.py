@@ -407,14 +407,7 @@ def main():
         else:
             logger.info(f"Running simulation with {imax_ka=}")
 
-        conf.step_scan = True
-        if conf.step_scan:
-            result = model.unit_step_scan(deepcopy(array0),
-                                          outfile,
-                                          conf)
-            return
-        else:
-            beam_twiss, array1 = model.track(deepcopy(array0), outfile, conf)
+        beam_twiss, array1 = model.track(deepcopy(array0), outfile, conf)
 
         # if conf.plot_optics:
         m, t0 = model.make_magnetic_lattice_and_twiss0()
