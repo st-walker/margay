@@ -20,7 +20,7 @@ from ocelot.cpbd.elements import Marker
 from ocelot.common.globals import m_e_GeV
 import pand8
 from ocelot.cpbd.track import ParameterScanner, UnitStepScanner
-
+from pathlib import Path
 
 import numpy as np
 import h5py
@@ -393,6 +393,8 @@ class T20WithFF(T20Base):
 
 class T20FromTL(T20Base):
     def __init__(self, *args, **kwargs):
-        tfsf = "/Users/stuartwalker/physics/s2luxe/luxe/TWISS_CL_T20.txt"
+        tfsf = Path("/Users/stuartwalker/physics/s2luxe/luxe/TWISS_CL_T20.txt")
+        if not tfsf.exists():
+            tfsf = "/home/stwalker/TWISS_CL_T20.txt"
         # RMAT_FILE = "/Users/stuartwalker/physics/luxe-beam-dynamics/luxe/RMAT_CL_T20.txt"
         super().__init__(tfsf, *args, **kwargs)
