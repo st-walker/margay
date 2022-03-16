@@ -21,9 +21,10 @@ from ocelot.common.globals import m_e_GeV
 import pand8
 from ocelot.cpbd.track import ParameterScanner, UnitStepScanner
 
+
 import numpy as np
 import h5py
-# from mpi4py import MPI
+from mpi4py import MPI
 
 import os
 
@@ -101,8 +102,8 @@ class T20Base:
 
         return lattice, optics
 
-    def _make_csr(self, parray, conf):
-        sigma_min = conf.csr_scaling * np.std(parray.tau()) # default 0.1*
+    def _make_csr(self, parray, csr_scaling):
+        sigma_min = csr_scaling * np.std(parray.tau()) # default 0.1*
         c = csr.CSR()
         c.n_bin = 300
         c.m_bin = 5
@@ -111,22 +112,23 @@ class T20Base:
         c.energy = parray.E
         return c
 
-    def _make_sc(self, parray, conf):
+    def _make_sc(self, parray):
         s = sc.SpaceCharge()
         s.step = 1
         s.nmesh_xyz = [31, 31, 31]
 
         return s
 
-    def add_physics(self, navigator, parray, outputfilename, conf# , csr_markers
+    def add_physics(self, navigator, parray, outputfilename# , csr_markers
                     ):
         for proc in self.physics:
             if proc == "sc":
-                navigator.add_physics_proc(self._make_sc(parray, conf),
+                navigator.add_physics_proc(self._make_sc(parray),
                                       navigator.lat.sequence[0],
                                       navigator.lat.sequence[-1])
             elif proc == "csr":
-                csr = self._make_csr(parray, conf)
+                csr_scaling = 0.1
+                csr = self._make_csr(parray, csr_scaling)
                 navigator.add_physics_proc(csr,
                                            navigator.lat.sequence[0],
                                            navigator.lat.sequence[-1])
@@ -137,14 +139,14 @@ class T20Base:
                 #         csr = self._make_csr(parray, conf)
                 #         navigator.add_physics_proc(csr, start, stop)
 
-
+        return
         for m, s in self.markers:
             navigator.add_physics_proc(BeamToHDF5(m.id, outputfilename, s,
                                              parray),
                                   m, m)
 
 
-    def make_navigator(self, parray, outputfilename, conf):
+    def make_navigator(self, parray, outputfilename, physics):
         mlattice, twiss0 = self.make_magnetic_lattice_and_twiss0()
         def f(ele):
             return isinstance(ele, (RBend, SBend)) and ele.l > 0.1
@@ -157,29 +159,8 @@ class T20Base:
         # from IPython import embed; embed()
         navi = Navigator(mlattice)
         navi.unit_step = self.unit_step
-        self.add_physics(navi, parray, outputfilename, conf)
+        self.add_physics(navi, parray, outputfilename)
         return navi, mlattice
-
-    def unit_step_scan(self, parray, outputfilename, conf):
-        calculate_optics = False
-
-        if not self.physics:
-            raise ConfigurationError("Must have some physics processes for unit step scan!")
-
-        navi, lattice = self.make_navigator(parray, outputfilename, conf)
-
-        unit_steps = np.logspace(-2, 2, num=5)
-        us_scanner = UnitStepScanner(navi,
-                                     unit_steps,
-                                     parray,
-                                     outputfilename,
-                                     parameter_name="unit_step"
-                                     )
-
-        us_scanner.scan()
-
-
-        return result
 
     def track(self, parray, outputfilename, conf):
         calculate_optics = conf.optics
@@ -294,7 +275,7 @@ class BeamToHDF5(PhysProc):
                 else:
                     shape = data.shape
 
-                group.create_dataset(name, dtype=dtype, shape=shape)
+                group.require_dataset(name, dtype=dtype, shape=shape)
                 group.attrs["id"] = self.id
                 group.attrs["s"] = self.s
 
