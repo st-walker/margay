@@ -62,7 +62,7 @@ def select_model(model_name, *args, **kwargs):
     return getattr(margay.models, model_name)(*args, **kwargs)
 
 def main():
-    physics=["sc"# , "csr"
+    physics=["sc", "csr"
              ]
     model = select_model("T20FromTL", unit_step=0.01, physics=physics,
                          save_after=["SBend", "Hcor", "Vcor"]
@@ -75,7 +75,7 @@ def main():
 
     outputfilename = "unit-step-scan.hdf5"
     navi, lattice = model.make_navigator(parray0, outputfilename, physics=physics)
-    unit_steps = np.logspace(-1, 1, num=3)
+    unit_steps = np.logspace(-2, 5, num=10)
     us_scanner = UnitStepScanner(navi,
                                  unit_steps,
                                  parray0,
