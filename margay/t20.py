@@ -208,7 +208,7 @@ def save_metadata(filename, conf, machine, imax_ka):
         f.attrs["imax"] = imax_ka # kiloamps
 
         # machine data
-        f.attrs["machine-tfs-file"] = machine.table_file
+        f.attrs["machine-tfs-file"] = str(machine.table_file)
         try:
             t = tfs.read(machine.table_file)
             head = t.headers

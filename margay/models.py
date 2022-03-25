@@ -21,6 +21,7 @@ from ocelot.common.globals import m_e_GeV
 import pand8
 from ocelot.cpbd.track import ParameterScanner, UnitStepScanner
 from pathlib import Path
+from ocelot import *
 
 import numpy as np
 import h5py
@@ -32,8 +33,9 @@ from . import bunch
 
 import logging
 
+logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 class ConfigurationError(Exception): pass
 
@@ -87,14 +89,29 @@ class T20Base:
         markers = []
         s = 0
         sa = self.save_after
+        cell = list(cell)
+        ip = None
+        try:
+            ip = next(x for x in cell if x.id == "LUXE.IP")
+        except StopIteration:
+            pass
+        # from IPython import embed; embed()
         for i, element in enumerate(cell):
             new_cell.append(element)
             s += element.l
+
+
+            if element is ip:
+                marker = Marker(f"{element.id}_{i}_marker")                
+                new_cell.append(marker)
+                markers.append((marker, s))
 
             if sa == "all" or type(element).__name__ in sa:
                 marker = Marker(f"{element.id}_{i}_marker")
                 new_cell.append(marker)
                 markers.append((marker, s))
+
+
 
         self.markers = markers
         lattice = magnetic_lattice.MagneticLattice(new_cell,
@@ -139,7 +156,6 @@ class T20Base:
                 #         csr = self._make_csr(parray, conf)
                 #         navigator.add_physics_proc(csr, start, stop)
 
-        return
         for m, s in self.markers:
             navigator.add_physics_proc(BeamToHDF5(m.id, outputfilename, s,
                                              parray),
@@ -171,12 +187,16 @@ class T20Base:
             ofunc = None
         beam_twiss, output_distribution = track(lattice, parray, navi,
                                                 calc_tws=calculate_optics,
-                                                return_df=True
+                                                return_df=True,
+                                                overwrite_progress=False
                                                 # optics_func=ofunc
                                                 )
         return beam_twiss, output_distribution
 
-    def make_beam(self, bunch_length, charge, energy=None, nparticles=200000):
+    def make_beam(self, bunch_length, charge, energy=None, nparticles=200000,
+                  emitxn=0.6e-6,
+                  emityn=0.6e-6,
+                  check=False):
         """duration in duration in s, charge in C."""
         sigma_tau = bunch_length
         logger.info(
@@ -188,11 +208,12 @@ class T20Base:
         if energy is None:
             energy = twiss0.E
 
-        emit_xn = 0.6e-6
-        emit_yn = 0.6e-6
+        emityn = 0.6e-6
         egamma = energy / m_e_GeV
-        twiss0.emit_x = emit_xn / egamma
-        twiss0.emit_y = emit_yn / egamma
+        twiss0.emit_x = emitxn / egamma
+        twiss0.emit_y = emityn / egamma
+        # make emitxn changeable...  pl
+        # also try once at 20gev just for fun..
         cov = cov_matrix_from_twiss(twiss0.emit_x,
                                     twiss0.emit_y,
                                     sigma_tau=sigma_tau,
@@ -213,6 +234,14 @@ class T20Base:
                                        energy=energy,
                                        charge=charge,
                                        nparticles=nparticles)
+
+        if check:
+            sa = global_slice_analysis(parray)
+            print(f"Bunch length of parray0: {parray.tau().std()*1e6}um")
+            print(f"Peak current of parray0: {max(sa.I*1e-3)}kA")
+            print(f"Projected X emittance of parray0: {sa.emitxn*1e6}um")
+            print(f"Projected Y emittance of parray0: {sa.emityn*1e6}um")        
+           
 
         return parray
 
