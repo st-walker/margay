@@ -29,7 +29,7 @@ from ocelot.cpbd.track import ParameterScanner, UnitStepScanner
 import numpy as np
 np.seterr(all='raise')
 from ocelot.cpbd.io import save_particle_array2npz
-
+from ocelot import *
 import logging
 
 logging.basicConfig()#level=logging.DEBUG, format='%(message)s')
@@ -40,8 +40,8 @@ logger.setLevel(logging.DEBUG)
 # LUXE_BUNCH_DURATION_RANGE = (30e-6 / 3e8, 50e-6 / 3e8)
 
 BUNCH_CHARGE = 250e-12 # 250 picoCoulombs HARDCODED NOW.
-NPARTICLES = int(1e5)
-# NPARTICLES = int(1e4)
+NPARTICLES = int(1e3)
+#NPARTICLES = int(1000)
 
 # try:
 import h5py
@@ -72,7 +72,7 @@ LENGTHS =  np.linspace(sigma_tau_6ka_250pc,
                        sigma_tau_6ka_250pc
                        * maximum_peak_current
                        / minimum_peak_current,
-                       num=3)
+                       num=10)
 
 
 def select_model(model_name, *args, **kwargs):
@@ -97,20 +97,40 @@ ENERGY = 14.
 
 
 class BunchLengthScanner(ParameterScanner):
-    def prepare_navigator(self, length):
-        navi = super().prepare_navigator(length)
-        navi.unit_step = 0.1
+    def prepare_navigator(self, length, parray, job_index):
+        navi = super().prepare_navigator(length, parray, job_index)
+        # navi.unit_step = 0.05
+        navi.unit_step = 0.01
 
-        # length = np.std(parray.tau()) # default 0.1*
-        sigma_min = 0.1 * length
-        c = csr.CSR()
-        c.n_bin = 300
-        c.m_bin = 5
-        c.sigma_min = sigma_min
-        c.rk_traj = True
-        c.energy = ENERGY
+        # # length = np.std(parray.tau()) # default 0.1*
+        # sigma_min = 0.1 * length
+        # c = csr.CSR()
+        # c.n_bin = 300
+        # c.m_bin = 5
+        # c.sigma_min = sigma_min
+        # c.rk_traj = True
+        # c.energy = ENERGY
         
         # from IPython import embed; embed()
+
+        # navi.add_physics_proc(c,
+        #                       navi.lat.sequence[0],
+        #                       navi.lat.sequence[-1])
+
+        s = sc.SpaceCharge()
+        s.step = 1
+        s.nmesh_xyz = [31, 31, 31]
+
+        navi.add_physics_proc(s,
+                              navi.lat.sequence[0],
+                              navi.lat.sequence[-1])
+
+        sa = global_slice_analysis(parray)
+        print(f"Peak current pf parray0: {max(sa.I*1e-3)}kA")
+        print(f"Projected X emittance of parray0: {sa.emitxn*1e6}um")
+        print(f"Projected Y emittance of parray0: {sa.emityn*1e6}um")        
+
+
         # navi.add_physics_proc(navi.la
         return navi
 
@@ -123,10 +143,11 @@ def main():
     parray0s = [model.make_beam(length,
                                 BUNCH_CHARGE,
                                 energy=14.,
-                                nparticles=NPARTICLES)
+                                nparticles=NPARTICLES,
+                                check=True)
                 for length in LENGTHS]
 
-    outputfilename = "peak-current-scan.hdf5"
+    outputfilename = "2-test-peak-current-scan.hdf5"
     navi, lattice = model.make_navigator(parray0s[0],
                                          outputfilename,
                                          physics=physics)
@@ -151,12 +172,13 @@ def main():
     us_scanner = BunchLengthScanner(navi,
                                     LENGTHS,
                                     parray0s,
-                                    outputfilename,
                                     parameter_name="bunch_length",
                                     markers=[ip_marker]
                                     )
     
-    us_scanner.scan(nproc=-1)
+    us_scanner.scan(outputfilename, 
+                    nproc=4,
+                    run_also_without_physics=True)
 
 if __name__ == '__main__':
     main()

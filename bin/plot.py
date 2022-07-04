@@ -145,10 +145,12 @@ def plot_raw_emittance_growth(files, ax, charge, label, ls):
                          )
 
 def get_files(inpath):
-    if not Path(inpath).is_dir():
+    inpath = Path(inpath)
+    if not inpath.is_dir():
         return [inpath]
 
-    files = list(filesdir.glob("*.hdf5"))
+    files = list(inpath.glob("*.hdf5"))
+    return files
 
 def get_dirname(files):
     dirs = set([Path(f).parent for f in files])
@@ -515,6 +517,8 @@ def main(inpath):
     plot_emittance_growth_versus_s(inpath)
     # plot_net_growth(filename)
     # plot_csr_scaling()
+
+    
 
 if __name__ == '__main__':
     main(sys.argv[1])

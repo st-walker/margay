@@ -27,6 +27,8 @@ import numpy as np
 import h5py
 from mpi4py import MPI
 
+import ttwenty
+
 import os
 
 from . import bunch
@@ -247,8 +249,8 @@ class T20Base:
 
     def twiss_optics(self, return_df=True):
         lattice, twiss0 = self.make_magnetic_lattice_and_twiss0()
-        # return twiss(lattice, tws0=twiss0, return_df=return_df)
-        return twiss(lattice, tws0=twiss0) #, return_df=return_df)
+        return twiss(lattice, tws0=twiss0, return_df=return_df)
+        # return twiss(lattice, tws0=twiss0) #, return_df=return_df)
 
 
 def write_beam_to_group(group, parray):
@@ -358,10 +360,10 @@ class PhaseAdvance(PhysProc):
 
 
 
-class T20(T20Base):
-    def __init__(self, *args, **kwargs):
-        tfsf = "/Users/stuartwalker/physics/optics-t20/twiss_t20.tfs"
-        super().__init__(tfsf, *args, **kwargs)
+# class T20(T20Base):
+#     def __init__(self, *args, **kwargs):
+#         tfsf = "/Users/stuartwalker/physics/optics-t20/twiss_t20.tfs"
+#         super().__init__(tfsf, *args, **kwargs)
 
 
 class T20Hor(T20Base):
@@ -415,15 +417,21 @@ class T20Hor(T20Base):
 #         pa = PhaseAdvance(mux=self.dmux, muy=self.dmuy)
 #         navigator.add_physics_proc(pa, self.marker, self.marker)
 
-class T20WithFF(T20Base):
+class T20FromTLEndWithLUXEFFAtIP(T20Base):
     def __init__(self, *args, **kwargs):
-        tfsf = "/Users/stuartwalker/physics/optics-t20/twiss_t20_with_ff.tfs"
+        tfsf = ttwenty.madx.TWISS_T20_LUXE_IP_FOCUS_PATH
         super().__init__(tfsf, *args, **kwargs)
 
-class T20FromTL(T20Base):
+class T20(T20Base):
     def __init__(self, *args, **kwargs):
-        tfsf = Path("/Users/stuartwalker/physics/s2luxe/luxe/TWISS_CL_T20.txt")
-        if not tfsf.exists():
-            tfsf = "/home/stwalker/TWISS_CL_T20.txt"
+        tfsf = ttwenty.madx.TWISS_T20_PATH
+        super().__init__(tfsf, *args, **kwargs)
+
+class TLWithT20(T20Base):
+    def __init__(self, *args, **kwargs):
+        tfsf = ttwenty.madx.TWISS_T20_PATH
+        # tfsf = Path("/Users/stuartwalker/physics/s2luxe/luxe/TWISS_CL_T20.txt")
+        # if not tfsf.exists():
+        #     tfsf = "/home/stwalker/TWISS_CL_T20.txt"
         # RMAT_FILE = "/Users/stuartwalker/physics/luxe-beam-dynamics/luxe/RMAT_CL_T20.txt"
         super().__init__(tfsf, *args, **kwargs)

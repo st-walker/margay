@@ -36,7 +36,7 @@ logger.setLevel(logging.DEBUG)
 # LUXE_BUNCH_DURATION_RANGE = (30e-6 / 3e8, 50e-6 / 3e8)
 
 BUNCH_CHARGE = 250e-12 # 250 picoCoulombs HARDCODED NOW.
-NPARTICLES = int(1e3)
+NPARTICLES = int(1e6)
 # NPARTICLES = int(1e4)
 
 # try:
