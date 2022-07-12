@@ -166,13 +166,13 @@ class T20Base:
 
     def make_navigator(self, parray, outputfilename, physics):
         mlattice, twiss0 = self.make_magnetic_lattice_and_twiss0()
-        def f(ele):
-            return isinstance(ele, (RBend, SBend)) and ele.l > 0.1
+        # def f(ele):
+        #     return isinstance(ele, (RBend, SBend)) and ele.l > 0.1
 
-        dipole_markers = magnetic_lattice.insert_markers_by_predicate(
-            mlattice.sequence,
-            f,
-        )
+        # dipole_markers = magnetic_lattice.insert_markers_by_predicate(
+        #     mlattice.sequence,
+        #     f,
+        # )
 
         # from IPython import embed; embed()
         navi = Navigator(mlattice)
